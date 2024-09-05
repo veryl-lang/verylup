@@ -127,7 +127,10 @@ pub async fn main() -> Result<()> {
             let self_path = self_path.canonicalize()?;
 
             for tool in TOOLS {
-                let tool_path = self_path.parent().unwrap().join(tool);
+                let mut tool_path = self_path.parent().unwrap().join(tool);
+                if cfg!(target_os = "windows") {
+                    tool_path.set_extension("exe");
+                }
                 if tool_path.exists() {
                     fs::remove_file(&tool_path)?;
                     fs::hard_link(&self_path, &tool_path)?;
