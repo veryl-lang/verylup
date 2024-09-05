@@ -23,6 +23,8 @@ cargo install verylup
 
 ## Usage
 
+`verylup` can be used like below:
+
 ```
 // Setup verylup (only once at first)
 verylup setup
@@ -35,6 +37,13 @@ verylup install 0.12.0
 
 // Show installed toolchains
 verylup show
+```
+
+After installing `verylup`, verion specifier by `+` can be used in `veryl` command like below: 
+
+```
+// Use the latest toolchain
+veryl build
 
 // Use a specific toolchain
 veryl +0.12.0 build
