@@ -109,14 +109,9 @@ impl ToolChain {
         info!("downloading toolchain: {self}");
 
         let url = get_archive_url(&version)?;
-        let resp = reqwest::get(url.clone()).await?;
-
-        if !resp.status().is_success() {
-            bail!("failed to download the archive of toolchain: {url}");
-        }
-
+        let data = download(&url).await?;
         let mut file = tempfile::tempfile()?;
-        file.write_all(&resp.bytes().await?)?;
+        file.write_all(&data)?;
 
         info!("installing toolchain: {self}");
 
@@ -250,6 +245,16 @@ fn set_exec(file: &mut File) -> Result<()> {
 #[cfg(windows)]
 fn set_exec(_file: &mut File) -> Result<()> {
     Ok(())
+}
+
+async fn download(url: &Url) -> Result<Vec<u8>> {
+    let resp = reqwest::get(url.clone()).await?;
+
+    if !resp.status().is_success() {
+        bail!("failed to download the archive of toolchain: {url}");
+    }
+
+    Ok(resp.bytes().await?.to_vec())
 }
 
 fn local_install() -> Result<()> {

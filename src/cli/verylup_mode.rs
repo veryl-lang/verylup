@@ -3,7 +3,7 @@ use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 use console::Style;
 use fern::Dispatch;
-use log::{Level, LevelFilter};
+use log::{info, Level, LevelFilter};
 use std::env;
 use std::fs;
 
@@ -127,6 +127,8 @@ pub async fn main() -> Result<()> {
             let self_path = self_path.canonicalize()?;
 
             for tool in TOOLS {
+                info!("creating hardlink: {tool}");
+
                 let mut tool_path = self_path.parent().unwrap().join(tool);
                 if cfg!(target_os = "windows") {
                     tool_path.set_extension("exe");
