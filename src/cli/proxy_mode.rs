@@ -1,6 +1,7 @@
 use crate::toolchain::ToolChain;
 use anyhow::{anyhow, bail, Result};
 use std::env;
+use std::io;
 use std::process::{Command, ExitStatus};
 
 pub async fn main(arg0: &str) -> Result<()> {
@@ -27,13 +28,13 @@ pub async fn main(arg0: &str) -> Result<()> {
     cmd.args(cmd_args);
 
     #[cfg(unix)]
-    fn exec(cmd: &mut Command) -> std::io::Result<ExitStatus> {
+    fn exec(cmd: &mut Command) -> io::Result<ExitStatus> {
         use std::os::unix::prelude::CommandExt;
         Err(cmd.exec())
     }
 
     #[cfg(windows)]
-    fn exec(cmd: &mut Command) -> std::io::Result<ExitStatus> {
+    fn exec(cmd: &mut Command) -> io::Result<ExitStatus> {
         use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
         use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
 
