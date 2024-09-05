@@ -26,7 +26,7 @@ pub async fn main(arg0: &str) -> Result<()> {
     let mut cmd = Command::new(toolchain.get_path(arg0));
     cmd.args(cmd_args);
 
-    //#[cfg(unix)]
+    #[cfg(unix)]
     fn exec(cmd: &mut Command) -> std::io::Result<ExitStatus> {
         use std::os::unix::prelude::CommandExt;
         Err(cmd.exec())
