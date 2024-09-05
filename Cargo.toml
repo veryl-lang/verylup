@@ -42,3 +42,7 @@ features = [
   "Win32_UI_WindowsAndMessaging",
 ]
 version = "0.59"
+
+[package.metadata.release]
+tag = true
+tag-name = "v{{version}}"
