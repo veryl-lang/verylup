@@ -1,6 +1,8 @@
+use crate::exec::exec;
 use crate::toolchain::{ToolChain, TOOLS};
-use anyhow::Result;
-use clap::{Args, Parser, Subcommand};
+use anyhow::{anyhow, Result};
+use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
+use clap_complete::aot::Shell;
 use console::Style;
 use fern::Dispatch;
 use log::{info, Level, LevelFilter};
@@ -30,6 +32,7 @@ enum Commands {
     Install(OptInstall),
     Uninstall(OptUninstall),
     Setup(OptSetup),
+    Completion(OptCompletion),
 }
 
 /// Show installed toolchains
@@ -55,6 +58,42 @@ pub struct OptUninstall {
 /// Setup Veryl toolchain
 #[derive(Args)]
 pub struct OptSetup {}
+
+/// Generate tab-completion scripts for your shell
+#[derive(Args)]
+pub struct OptCompletion {
+    shell: CompletionShell,
+    command: CompletionCommand,
+}
+
+#[derive(Clone, ValueEnum)]
+#[clap(rename_all = "lower")]
+pub enum CompletionShell {
+    Bash,
+    Elvish,
+    Fish,
+    PowerShell,
+    Zsh,
+}
+
+impl std::fmt::Display for CompletionShell {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let text = match self {
+            CompletionShell::Bash => "bash",
+            CompletionShell::Elvish => "elvish",
+            CompletionShell::Fish => "fish",
+            CompletionShell::PowerShell => "powershell",
+            CompletionShell::Zsh => "zsh",
+        };
+        text.fmt(f)
+    }
+}
+
+#[derive(Clone, ValueEnum)]
+pub enum CompletionCommand {
+    Verylup,
+    Veryl,
+}
 
 pub async fn main() -> Result<()> {
     let opt = Opt::parse();
@@ -141,6 +180,32 @@ pub async fn main() -> Result<()> {
                 }
             }
         }
+        Commands::Completion(x) => match x.command {
+            CompletionCommand::Verylup => {
+                let shell = match x.shell {
+                    CompletionShell::Bash => Shell::Bash,
+                    CompletionShell::Elvish => Shell::Elvish,
+                    CompletionShell::Fish => Shell::Fish,
+                    CompletionShell::PowerShell => Shell::PowerShell,
+                    CompletionShell::Zsh => Shell::Zsh,
+                };
+                clap_complete::generate(
+                    shell,
+                    &mut Opt::command(),
+                    "verylup",
+                    &mut std::io::stdout(),
+                );
+            }
+            CompletionCommand::Veryl => {
+                let toolchain =
+                    ToolChain::default_toolchain().ok_or(anyhow!("no toolchain is found"))?;
+                let mut cmd = std::process::Command::new(toolchain.get_path("veryl"));
+                cmd.arg("check")
+                    .arg("--completion")
+                    .arg(x.shell.to_string());
+                exec(&mut cmd)?;
+            }
+        },
     }
 
     Ok(())

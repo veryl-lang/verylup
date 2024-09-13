@@ -1,8 +1,8 @@
+use crate::exec::exec;
 use crate::toolchain::ToolChain;
 use anyhow::{anyhow, bail, Result};
 use std::env;
-use std::io;
-use std::process::{Command, ExitStatus};
+use std::process::Command;
 
 pub async fn main(arg0: &str) -> Result<()> {
     let arg1 = env::args().nth(1);
@@ -26,34 +26,6 @@ pub async fn main(arg0: &str) -> Result<()> {
 
     let mut cmd = Command::new(toolchain.get_path(arg0));
     cmd.args(cmd_args);
-
-    #[cfg(unix)]
-    fn exec(cmd: &mut Command) -> io::Result<ExitStatus> {
-        use std::os::unix::prelude::CommandExt;
-        Err(cmd.exec())
-    }
-
-    #[cfg(windows)]
-    fn exec(cmd: &mut Command) -> io::Result<ExitStatus> {
-        use windows_sys::Win32::Foundation::{BOOL, FALSE, TRUE};
-        use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
-
-        unsafe extern "system" fn ctrlc_handler(_: u32) -> BOOL {
-            // Do nothing. Let the child process handle it.
-            TRUE
-        }
-        unsafe {
-            if SetConsoleCtrlHandler(Some(ctrlc_handler), TRUE) == FALSE {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "Unable to set console handler",
-                ));
-            }
-        }
-
-        cmd.status()
-    }
-
     exec(&mut cmd)?;
 
     Ok(())
