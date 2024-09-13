@@ -1,4 +1,5 @@
 mod cli;
+mod exec;
 mod toolchain;
 
 use anyhow::Result;
