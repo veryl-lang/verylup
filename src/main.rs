@@ -1,4 +1,5 @@
 mod cli;
+mod config;
 mod exec;
 mod toolchain;
 mod utils;

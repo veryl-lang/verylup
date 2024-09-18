@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::utils::*;
 use anyhow::{anyhow, bail, Error, Result};
 use directories::ProjectDirs;
@@ -47,6 +48,14 @@ impl ToolChain {
     }
 
     pub fn default_toolchain() -> Option<ToolChain> {
+        let config = Config::load();
+        if let Some(x) = config.default_toolchain {
+            for toolchain in Self::list().into_iter() {
+                if toolchain.to_string() == x {
+                    return Some(toolchain);
+                }
+            }
+        }
         Self::list().last().cloned()
     }
 
