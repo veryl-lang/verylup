@@ -12,6 +12,7 @@ use semver::Version;
 use std::env;
 use std::fs;
 use std::io::Write;
+use std::path::Path;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -179,24 +180,8 @@ pub async fn main() -> Result<()> {
         Commands::Setup(_) => {
             let toolchain = ToolChain::Latest;
             toolchain.install().await?;
-
             let self_path = env::current_exe()?;
-            let self_path = self_path.canonicalize()?;
-
-            for tool in TOOLS {
-                info!("creating hardlink: {tool}");
-
-                let mut tool_path = self_path.parent().unwrap().join(tool);
-                if cfg!(target_os = "windows") {
-                    tool_path.set_extension("exe");
-                }
-                if tool_path.exists() {
-                    fs::remove_file(&tool_path)?;
-                    fs::hard_link(&self_path, &tool_path)?;
-                } else {
-                    fs::hard_link(&self_path, &tool_path)?;
-                }
-            }
+            update_link(&self_path)?;
         }
         Commands::Completion(x) => match x.command {
             CompletionCommand::Verylup => {
@@ -251,9 +236,34 @@ async fn self_update() -> Result<()> {
 
         let binary = dir.path().join("verylup");
 
+        // save self_path before replacing
+        let self_path = env::current_exe()?;
+
         self_replace::self_replace(binary)?;
+        update_link(&self_path)?;
     } else {
         info!("checking verylup: {self_version} (up-to-date)");
     }
+    Ok(())
+}
+
+fn update_link(self_path: &Path) -> Result<()> {
+    let self_path = self_path.canonicalize()?;
+
+    for tool in TOOLS {
+        info!("creating hardlink: {tool}");
+
+        let mut tool_path = self_path.parent().unwrap().join(tool);
+        if cfg!(target_os = "windows") {
+            tool_path.set_extension("exe");
+        }
+        if tool_path.exists() {
+            fs::remove_file(&tool_path)?;
+            fs::hard_link(&self_path, &tool_path)?;
+        } else {
+            fs::hard_link(&self_path, &tool_path)?;
+        }
+    }
+
     Ok(())
 }
