@@ -37,6 +37,7 @@ enum Commands {
     Install(OptInstall),
     Uninstall(OptUninstall),
     Default(OptDefault),
+    Override(OptOverride),
     Setup(OptSetup),
     Completion(OptCompletion),
 }
@@ -66,6 +67,34 @@ pub struct OptUninstall {
 pub struct OptDefault {
     target: String,
 }
+
+/// Modify toolchain overrides for directories
+#[derive(Args)]
+pub struct OptOverride {
+    #[command(subcommand)]
+    command: OverrideCommand,
+}
+
+#[derive(Subcommand)]
+pub enum OverrideCommand {
+    List(OptOverrideList),
+    Set(OptOverrideSet),
+    Unset(OptOverrideUnset),
+}
+
+/// List directory toolchain overrides
+#[derive(Args)]
+pub struct OptOverrideList {}
+
+/// Set the override toolchain for a directory
+#[derive(Args)]
+pub struct OptOverrideSet {
+    target: String,
+}
+
+/// Remove the override toolchain for a directory
+#[derive(Args)]
+pub struct OptOverrideUnset {}
 
 /// Setup Veryl toolchain
 #[derive(Args)]
@@ -176,6 +205,33 @@ pub async fn main() -> Result<()> {
             let mut config = Config::load();
             config.default_toolchain = Some(toolchain.to_string());
             config.save()?;
+        }
+        Commands::Override(x) => {
+            let mut config = Config::load();
+
+            match x.command {
+                OverrideCommand::List(_) => {
+                    for (path, toolchain) in &config.overrides {
+                        println!("{} {}", path.to_string_lossy(), toolchain);
+                    }
+                }
+                OverrideCommand::Set(x) => {
+                    let toolchain = ToolChain::try_from(&x.target)?;
+                    let dir = search_project()?;
+                    config.overrides.insert(dir.clone(), toolchain.to_string());
+                    info!("adding toolchain override for {}", dir.to_string_lossy());
+                    config.save()?;
+                }
+                OverrideCommand::Unset(_) => {
+                    let dir = search_project()?;
+                    if config.overrides.remove(&dir).is_some() {
+                        info!("removing toolchain override for {}", dir.to_string_lossy());
+                        config.save()?;
+                    } else {
+                        info!("no toolchain override for {}", dir.to_string_lossy());
+                    }
+                }
+            }
         }
         Commands::Setup(_) => {
             let toolchain = ToolChain::Latest;

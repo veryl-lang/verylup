@@ -1,9 +1,9 @@
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Result};
 use reqwest::Url;
 use semver::Version;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use zip::ZipArchive;
 
 pub async fn get_latest_version(project: &str) -> Result<Version> {
@@ -73,4 +73,14 @@ pub fn unzip(file: &File, dir: &Path) -> Result<()> {
         set_exec(&mut tgt)?;
     }
     Ok(())
+}
+
+pub fn search_project() -> Result<PathBuf> {
+    let dir = std::env::current_dir()?;
+    for p in dir.ancestors() {
+        if p.join("Veryl.toml").exists() {
+            return Ok(dir);
+        }
+    }
+    Err(anyhow!("Veryl project is not found"))
 }
