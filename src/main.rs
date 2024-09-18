@@ -1,6 +1,7 @@
 mod cli;
 mod exec;
 mod toolchain;
+mod utils;
 
 use anyhow::Result;
 use std::env;
