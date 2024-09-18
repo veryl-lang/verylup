@@ -1,3 +1,4 @@
+use crate::config::Config;
 use crate::exec::exec;
 use crate::toolchain::{ToolChain, TOOLS};
 use crate::utils::*;
@@ -34,6 +35,7 @@ enum Commands {
     Update(OptUpdate),
     Install(OptInstall),
     Uninstall(OptUninstall),
+    Default(OptDefault),
     Setup(OptSetup),
     Completion(OptCompletion),
 }
@@ -55,6 +57,12 @@ pub struct OptInstall {
 /// Uninstall a given toolchain
 #[derive(Args)]
 pub struct OptUninstall {
+    target: String,
+}
+
+/// Set a given toolchain as default
+#[derive(Args)]
+pub struct OptDefault {
     target: String,
 }
 
@@ -140,9 +148,9 @@ pub async fn main() -> Result<()> {
             println!("installed toolchains");
             println!("--------------------\n");
 
-            let list = ToolChain::list();
-            for (i, x) in list.iter().enumerate() {
-                if i == list.len() - 1 {
+            let default_toolchain = ToolChain::default_toolchain();
+            for x in ToolChain::list() {
+                if Some(&x) == default_toolchain.as_ref() {
                     println!("{x} (default)");
                 } else {
                     println!("{x}");
@@ -161,6 +169,12 @@ pub async fn main() -> Result<()> {
         Commands::Uninstall(x) => {
             let toolchain = ToolChain::try_from(&x.target)?;
             toolchain.uninstall().await?;
+        }
+        Commands::Default(x) => {
+            let toolchain = ToolChain::try_from(&x.target)?;
+            let mut config = Config::load();
+            config.default_toolchain = Some(toolchain.to_string());
+            config.save()?;
         }
         Commands::Setup(_) => {
             let toolchain = ToolChain::Latest;
