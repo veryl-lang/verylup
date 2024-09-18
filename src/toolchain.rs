@@ -1,14 +1,13 @@
+use crate::utils::*;
 use anyhow::{anyhow, bail, Error, Result};
 use directories::ProjectDirs;
 use log::info;
-use reqwest::Url;
 use semver::Version;
 use std::fmt;
-use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::fs;
+use std::io::Write;
 use std::path::{Component, PathBuf};
 use std::process::Command;
-use zip::ZipArchive;
 
 pub const TOOLS: &[&str] = &["veryl", "veryl-ls"];
 
@@ -73,7 +72,7 @@ impl ToolChain {
     pub async fn install(&self) -> Result<()> {
         let version = match self {
             ToolChain::Latest => {
-                let latest = get_latest_version().await?;
+                let latest = get_latest_version("veryl").await?;
                 if let Ok(actual) = self.get_actual_version() {
                     if latest != actual {
                         Some(latest)
@@ -108,7 +107,7 @@ impl ToolChain {
 
         info!("downloading toolchain: {self}");
 
-        let url = get_archive_url(&version)?;
+        let url = get_archive_url("veryl", &version)?;
         let data = download(&url).await?;
         let mut file = tempfile::tempfile()?;
         file.write_all(&data)?;
@@ -120,16 +119,7 @@ impl ToolChain {
             fs::create_dir_all(&dir)?;
         }
 
-        let mut zip = ZipArchive::new(file)?;
-        for i in 0..zip.len() {
-            let mut src = zip.by_index(i)?;
-            let path = dir.join(src.name());
-            let mut tgt = File::create(&path)?;
-            let mut buf = Vec::new();
-            src.read_to_end(&mut buf)?;
-            tgt.write_all(&buf)?;
-            set_exec(&mut tgt)?;
-        }
+        unzip(&file, &dir)?;
 
         Ok(())
     }
@@ -202,59 +192,6 @@ impl PartialOrd for ToolChain {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
-}
-
-pub async fn get_latest_version() -> Result<Version> {
-    let resp = reqwest::get("https://github.com/veryl-lang/veryl/releases/latest").await?;
-    let path = resp.url().path();
-    let version = path.split("/").last().unwrap();
-    let version = version.strip_prefix('v').unwrap();
-    let version = Version::parse(version)?;
-    Ok(version)
-}
-
-include!(concat!(env!("OUT_DIR"), "/target.rs"));
-
-fn get_archive_url(version: &Version) -> Result<Url> {
-    let archive = if TARGET.starts_with("x86_64-unknown-linux") {
-        "veryl-x86_64-linux.zip"
-    } else if TARGET.starts_with("x86_64-pc-windows") {
-        "veryl-x86_64-windows.zip"
-    } else if TARGET.starts_with("x86_64-apple") {
-        "veryl-x86_64-mac.zip"
-    } else if TARGET.starts_with("aarch64-apple") {
-        "veryl-aarch64-mac.zip"
-    } else {
-        bail!("unknown target");
-    };
-
-    let url = format!("https://github.com/veryl-lang/veryl/releases/download/v{version}/{archive}");
-    let url = Url::parse(&url)?;
-    Ok(url)
-}
-
-#[cfg(not(windows))]
-fn set_exec(file: &mut File) -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-    let mut perm = file.metadata()?.permissions();
-    perm.set_mode(0o755);
-    file.set_permissions(perm)?;
-    Ok(())
-}
-
-#[cfg(windows)]
-fn set_exec(_file: &mut File) -> Result<()> {
-    Ok(())
-}
-
-async fn download(url: &Url) -> Result<Vec<u8>> {
-    let resp = reqwest::get(url.clone()).await?;
-
-    if !resp.status().is_success() {
-        bail!("failed to download the archive of toolchain: {url}");
-    }
-
-    Ok(resp.bytes().await?.to_vec())
 }
 
 fn local_install() -> Result<()> {

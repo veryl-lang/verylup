@@ -1,13 +1,16 @@
 use crate::exec::exec;
 use crate::toolchain::{ToolChain, TOOLS};
+use crate::utils::*;
 use anyhow::{anyhow, Result};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::aot::Shell;
 use console::Style;
 use fern::Dispatch;
 use log::{info, Level, LevelFilter};
+use semver::Version;
 use std::env;
 use std::fs;
+use std::io::Write;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -149,6 +152,7 @@ pub async fn main() -> Result<()> {
         Commands::Update(_) => {
             let toolchain = ToolChain::Latest;
             toolchain.install().await?;
+            self_update().await?;
         }
         Commands::Install(x) => {
             let toolchain = ToolChain::try_from(&x.target)?;
@@ -208,5 +212,34 @@ pub async fn main() -> Result<()> {
         },
     }
 
+    Ok(())
+}
+
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+async fn self_update() -> Result<()> {
+    let latest_version = get_latest_version("verylup").await?;
+    let self_version = Version::parse(VERSION)?;
+
+    if latest_version > self_version {
+        info!("downloading verylup: {latest_version}");
+
+        let url = get_archive_url("verylup", &latest_version)?;
+        let data = download(&url).await?;
+        let mut file = tempfile::tempfile()?;
+        file.write_all(&data)?;
+
+        info!("installing verylup: {latest_version}");
+
+        let dir = tempfile::tempdir()?;
+
+        unzip(&file, dir.path())?;
+
+        let binary = dir.path().join("verylup");
+
+        self_replace::self_replace(binary)?;
+    } else {
+        info!("checking verylup: {self_version} (up-to-date)");
+    }
     Ok(())
 }
