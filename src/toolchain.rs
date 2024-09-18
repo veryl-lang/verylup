@@ -49,13 +49,24 @@ impl ToolChain {
 
     pub fn default_toolchain() -> Option<ToolChain> {
         let config = Config::load();
-        if let Some(x) = config.default_toolchain {
-            for toolchain in Self::list().into_iter() {
-                if toolchain.to_string() == x {
-                    return Some(toolchain);
+
+        // directory override
+        let project = search_project();
+        if let Ok(project) = project {
+            if let Some(x) = config.overrides.get(&project) {
+                if let Some(x) = Self::by_name(x) {
+                    return Some(x);
                 }
             }
         }
+
+        // default toolchain config
+        if let Some(x) = config.default_toolchain {
+            if let Some(x) = Self::by_name(&x) {
+                return Some(x);
+            }
+        }
+
         Self::list().last().cloned()
     }
 
@@ -76,6 +87,20 @@ impl ToolChain {
 
         ret.sort();
         ret
+    }
+
+    pub fn by_name(name: &str) -> Option<ToolChain> {
+        let path = Self::base_dir().join(name);
+
+        if path.exists() {
+            if let Ok(x) = ToolChain::try_from(name) {
+                Some(x)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
     }
 
     pub async fn install(&self) -> Result<()> {

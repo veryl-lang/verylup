@@ -1,11 +1,16 @@
 use anyhow::Result;
 use serde_derive::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
+use std::path::PathBuf;
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default)]
     pub default_toolchain: Option<String>,
+
+    #[serde(default)]
+    pub overrides: HashMap<PathBuf, String>,
 }
 
 impl Config {
