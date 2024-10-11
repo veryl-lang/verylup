@@ -5,7 +5,7 @@ use directories::ProjectDirs;
 use log::info;
 use semver::Version;
 use std::fmt;
-use std::fs;
+use std::fs::{self, File};
 use std::io::Write;
 use std::path::{Component, PathBuf};
 use std::process::Command;
@@ -21,7 +21,12 @@ pub enum ToolChain {
 
 impl ToolChain {
     pub fn get_actual_version(&self) -> Result<Version> {
-        let path = self.get_path("veryl");
+        let path = if cfg!(target_os = "windows") {
+            self.get_path("veryl.exe")
+        } else {
+            self.get_path("veryl")
+        };
+
         let output = Command::new(path).arg("--version").output()?;
         let version = String::from_utf8(output.stdout)?;
         let version = version.strip_prefix("veryl ").unwrap().trim_end();
@@ -103,48 +108,70 @@ impl ToolChain {
         }
     }
 
-    pub async fn install(&self) -> Result<()> {
-        let version = match self {
-            ToolChain::Latest => {
-                let latest = get_latest_version("veryl").await?;
-                if let Ok(actual) = self.get_actual_version() {
-                    if latest != actual {
+    pub async fn install(&self, pkg: &Option<PathBuf>) -> Result<()> {
+        let file = if let Some(pkg) = pkg {
+            info!("extracting toolchain package: {}", pkg.to_string_lossy());
+
+            let pkg_version = get_package_version(pkg)?;
+
+            if let Ok(actual) = self.get_actual_version() {
+                if pkg_version <= actual {
+                    info!("checking toolchain: {self} (up-to-date)");
+                    return Ok(());
+                }
+            }
+
+            if let ToolChain::Version(x) = self {
+                if *x != pkg_version {
+                    bail!("unexpected package: package version is {pkg_version}");
+                }
+            }
+
+            File::open(pkg)?
+        } else {
+            let version = match self {
+                ToolChain::Latest => {
+                    let latest = get_latest_version("veryl").await?;
+                    if let Ok(actual) = self.get_actual_version() {
+                        if latest != actual {
+                            Some(latest)
+                        } else {
+                            None
+                        }
+                    } else {
                         Some(latest)
-                    } else {
-                        None
                     }
-                } else {
-                    Some(latest)
                 }
-            }
-            ToolChain::Version(x) => {
-                if let Ok(actual) = self.get_actual_version() {
-                    if *x != actual {
+                ToolChain::Version(x) => {
+                    if let Ok(actual) = self.get_actual_version() {
+                        if *x != actual {
+                            Some(x.clone())
+                        } else {
+                            None
+                        }
+                    } else {
                         Some(x.clone())
-                    } else {
-                        None
                     }
-                } else {
-                    Some(x.clone())
                 }
-            }
-            ToolChain::Local => {
-                local_install()?;
+                ToolChain::Local => {
+                    local_install()?;
+                    return Ok(());
+                }
+            };
+
+            let Some(version) = version else {
+                info!("checking toolchain: {self} (up-to-date)");
                 return Ok(());
-            }
+            };
+
+            info!("downloading toolchain: {self}");
+
+            let url = get_archive_url("veryl", &version)?;
+            let data = download(&url).await?;
+            let mut file = tempfile::tempfile()?;
+            file.write_all(&data)?;
+            file
         };
-
-        let Some(version) = version else {
-            info!("checking toolchain: {self} (up-to-date)");
-            return Ok(());
-        };
-
-        info!("downloading toolchain: {self}");
-
-        let url = get_archive_url("veryl", &version)?;
-        let data = download(&url).await?;
-        let mut file = tempfile::tempfile()?;
-        file.write_all(&data)?;
 
         info!("installing toolchain: {self}");
 
@@ -158,7 +185,7 @@ impl ToolChain {
         Ok(())
     }
 
-    pub async fn uninstall(&self) -> Result<()> {
+    pub fn uninstall(&self) -> Result<()> {
         info!("uninstalling toolchain: {self}");
 
         let dir = self.get_dir();
