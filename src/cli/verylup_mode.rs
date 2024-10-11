@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::exec::exec;
 use crate::toolchain::{ToolChain, TOOLS};
 use crate::utils::*;
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, bail, Result};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::aot::Shell;
 use console::Style;
@@ -12,7 +12,7 @@ use semver::Version;
 use std::env;
 use std::fs;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -48,12 +48,20 @@ pub struct OptShow {}
 
 /// Update Veryl toolchains and verylup
 #[derive(Args)]
-pub struct OptUpdate {}
+pub struct OptUpdate {
+    /// Toolchain package path for offline installation
+    #[arg(long)]
+    pkg: Option<PathBuf>,
+}
 
 /// Install or update a given toolchain
 #[derive(Args)]
 pub struct OptInstall {
     target: String,
+
+    /// Toolchain package path for offline installation
+    #[arg(long)]
+    pkg: Option<PathBuf>,
 }
 
 /// Uninstall a given toolchain
@@ -98,7 +106,15 @@ pub struct OptOverrideUnset {}
 
 /// Setup Veryl toolchain
 #[derive(Args)]
-pub struct OptSetup {}
+pub struct OptSetup {
+    /// Offline mode
+    #[arg(long)]
+    offline: bool,
+
+    /// Toolchain package path for offline installation
+    #[arg(long)]
+    pkg: Option<PathBuf>,
+}
 
 /// Generate tab-completion scripts for your shell
 #[derive(Args)]
@@ -187,18 +203,31 @@ pub async fn main() -> Result<()> {
                 }
             }
         }
-        Commands::Update(_) => {
+        Commands::Update(x) => {
+            let config = Config::load();
+            if x.pkg.is_none() && config.offline {
+                bail!("\"--pkg\" is required in offline mode");
+            }
+
             let toolchain = ToolChain::Latest;
-            toolchain.install().await?;
-            self_update().await?;
+            toolchain.install(&x.pkg).await?;
+
+            if !config.offline {
+                self_update().await?;
+            }
         }
         Commands::Install(x) => {
+            let config = Config::load();
+            if x.pkg.is_none() && config.offline {
+                bail!("\"--pkg\" is required in offline mode");
+            }
+
             let toolchain = ToolChain::try_from(&x.target)?;
-            toolchain.install().await?;
+            toolchain.install(&x.pkg).await?;
         }
         Commands::Uninstall(x) => {
             let toolchain = ToolChain::try_from(&x.target)?;
-            toolchain.uninstall().await?;
+            toolchain.uninstall()?;
         }
         Commands::Default(x) => {
             let toolchain = ToolChain::try_from(&x.target)?;
@@ -233,9 +262,19 @@ pub async fn main() -> Result<()> {
                 }
             }
         }
-        Commands::Setup(_) => {
+        Commands::Setup(x) => {
+            if x.offline {
+                if x.pkg.is_none() {
+                    bail!("\"--pkg\" is required in offline mode");
+                }
+
+                let mut config = Config::load();
+                config.offline = true;
+                config.save()?;
+            }
+
             let toolchain = ToolChain::Latest;
-            toolchain.install().await?;
+            toolchain.install(&x.pkg).await?;
             let self_path = env::current_exe()?;
             update_link(&self_path)?;
         }

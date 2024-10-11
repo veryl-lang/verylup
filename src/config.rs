@@ -11,6 +11,9 @@ pub struct Config {
 
     #[serde(default)]
     pub overrides: HashMap<PathBuf, String>,
+
+    #[serde(default)]
+    pub offline: bool,
 }
 
 impl Config {

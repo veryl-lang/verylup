@@ -4,6 +4,7 @@ use semver::Version;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use zip::ZipArchive;
 
 pub async fn get_latest_version(project: &str) -> Result<Version> {
@@ -83,4 +84,22 @@ pub fn search_project() -> Result<PathBuf> {
         }
     }
     Err(anyhow!("Veryl project is not found"))
+}
+
+pub fn get_package_version(path: &Path) -> Result<Version> {
+    let temp = tempfile::tempdir()?;
+    let file = File::open(path)?;
+    unzip(&file, temp.path())?;
+
+    let path = if cfg!(target_os = "windows") {
+        temp.path().join("veryl.exe")
+    } else {
+        temp.path().join("veryl")
+    };
+
+    let output = Command::new(path).arg("--version").output()?;
+    let version = String::from_utf8(output.stdout)?;
+    let version = version.strip_prefix("veryl ").unwrap().trim_end();
+    let version = Version::parse(version)?;
+    Ok(version)
 }
