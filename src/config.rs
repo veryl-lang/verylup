@@ -1,6 +1,8 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
+use log::info;
 use serde_derive::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 use std::fs;
 use std::path::PathBuf;
 
@@ -48,5 +50,28 @@ impl Config {
         }
 
         Ok(())
+    }
+
+    pub fn set(&mut self, key: &str, value: &str) -> Result<()> {
+        match key {
+            "offline" => {
+                let value: bool = value.parse()?;
+                self.offline = value;
+                info!("changed: offline = {value}");
+            }
+            _ => {
+                bail!("Unknown key: {}", key)
+            }
+        }
+        Ok(())
+    }
+}
+
+impl fmt::Display for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut ret = String::new();
+        ret.push_str("Verylup configuration\n");
+        ret.push_str(&format!("  offline: {}\n", self.offline));
+        ret.fmt(f)
     }
 }

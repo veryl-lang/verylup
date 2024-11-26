@@ -40,6 +40,7 @@ enum Commands {
     Override(OptOverride),
     Setup(OptSetup),
     Completion(OptCompletion),
+    Config(OptConfig),
 }
 
 /// Show installed toolchains
@@ -131,6 +132,30 @@ pub enum CompletionShell {
     Fish,
     PowerShell,
     Zsh,
+}
+
+/// Modify verylup configuration
+#[derive(Args)]
+pub struct OptConfig {
+    #[command(subcommand)]
+    command: ConfigCommand,
+}
+
+#[derive(Subcommand)]
+pub enum ConfigCommand {
+    Show(OptConfigShow),
+    Set(OptConfigSet),
+}
+
+/// Show the current configuration
+#[derive(Args)]
+pub struct OptConfigShow {}
+
+/// Modify an entry of the configuration
+#[derive(Args)]
+pub struct OptConfigSet {
+    key: String,
+    value: String,
 }
 
 impl std::fmt::Display for CompletionShell {
@@ -302,6 +327,17 @@ pub async fn main() -> Result<()> {
                     .arg("--completion")
                     .arg(x.shell.to_string());
                 exec(&mut cmd)?;
+            }
+        },
+        Commands::Config(x) => match x.command {
+            ConfigCommand::Show(_) => {
+                let config = Config::load();
+                println!("{config}");
+            }
+            ConfigCommand::Set(x) => {
+                let mut config = Config::load();
+                config.set(&x.key, &x.value)?;
+                config.save()?;
             }
         },
     }
