@@ -382,7 +382,7 @@ fn update_link(self_path: &Path) -> Result<()> {
     let self_path = self_path.canonicalize()?;
 
     for tool in TOOLS {
-        info!("creating hardlink: {tool}");
+        info!("creating link: {tool}");
 
         let mut tool_path = self_path.parent().unwrap().join(tool);
         if cfg!(target_os = "windows") {
@@ -390,11 +390,27 @@ fn update_link(self_path: &Path) -> Result<()> {
         }
         if tool_path.exists() {
             fs::remove_file(&tool_path)?;
-            fs::hard_link(&self_path, &tool_path)?;
+            hard_or_symlink(&self_path, &tool_path)?;
         } else {
-            fs::hard_link(&self_path, &tool_path)?;
+            hard_or_symlink(&self_path, &tool_path)?;
         }
     }
 
+    Ok(())
+}
+
+#[cfg(unix)]
+fn hard_or_symlink(src: &Path, dst: &Path) -> Result<()> {
+    // Fallback to symlink on some platforms which don't support hardlink.
+    if fs::hard_link(src, dst).is_err() {
+        std::os::unix::fs::symlink(src, dst)?;
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn hard_or_symlink(src: &Path, dst: &Path) -> Result<()> {
+    // Windows does not support symlink.
+    fs::hard_link(src, dst)?;
     Ok(())
 }
