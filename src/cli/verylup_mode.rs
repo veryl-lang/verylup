@@ -221,10 +221,19 @@ pub async fn main() -> Result<()> {
 
             let default_toolchain = ToolChain::default_toolchain();
             for x in ToolChain::list() {
-                if Some(&x) == default_toolchain.as_ref() {
-                    println!("{x} (default)");
+                let text = if x == ToolChain::Latest {
+                    if let Ok(version) = x.get_actual_version() {
+                        format!("{x}: {version}")
+                    } else {
+                        x.to_string()
+                    }
                 } else {
-                    println!("{x}");
+                    x.to_string()
+                };
+                if Some(&x) == default_toolchain.as_ref() {
+                    println!("{text} (default)");
+                } else {
+                    println!("{text}");
                 }
             }
         }
