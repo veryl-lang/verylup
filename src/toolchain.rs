@@ -314,7 +314,13 @@ fn local_install() -> Result<()> {
     for file in fs::read_dir(bin)? {
         let file = file?;
         let tgt = dir.join(file.file_name());
-        fs::copy(file.path(), &tgt)?;
+        let mut tmp = dir.join(file.file_name()).clone();
+        tmp.set_extension("new");
+
+        // Copy new binary to a temporary file on the same filesystem as target, and move it to target
+        // This is a workaround to avoid "Text file busy" error caused by copying to executing files.
+        fs::copy(file.path(), &tmp)?;
+        fs::rename(&tmp, &tgt)?;
     }
 
     Ok(())
