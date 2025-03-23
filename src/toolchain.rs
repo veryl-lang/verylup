@@ -16,6 +16,7 @@ pub const TOOLS: &[&str] = &["veryl", "veryl-ls"];
 pub enum ToolChain {
     Version(Version),
     Latest,
+    Nightly,
     Local,
 }
 
@@ -157,16 +158,21 @@ impl ToolChain {
                     local_install()?;
                     return Ok(());
                 }
+                ToolChain::Nightly => None,
             };
 
-            let Some(version) = version else {
-                info!("checking toolchain: {self} (up-to-date)");
-                return Ok(());
+            let url = if self == &ToolChain::Nightly {
+                get_nightly_url()?
+            } else {
+                let Some(version) = version else {
+                    info!("checking toolchain: {self} (up-to-date)");
+                    return Ok(());
+                };
+                get_archive_url("veryl", &version)?
             };
 
             info!("downloading toolchain: {self}");
 
-            let url = get_archive_url("veryl", &version)?;
             let data = download(&url).await?;
             let mut file = tempfile::tempfile()?;
             file.write_all(&data)?;
@@ -205,6 +211,7 @@ impl fmt::Display for ToolChain {
             ToolChain::Version(x) => x.fmt(f),
             ToolChain::Latest => "latest".fmt(f),
             ToolChain::Local => "local".fmt(f),
+            ToolChain::Nightly => "nightly".fmt(f),
         }
     }
 }
@@ -215,6 +222,7 @@ impl TryFrom<&str> for ToolChain {
         match value {
             "latest" => Ok(ToolChain::Latest),
             "local" => Ok(ToolChain::Local),
+            "nightly" => Ok(ToolChain::Nightly),
             x => {
                 let version = Version::parse(x);
                 if let Ok(version) = version {
@@ -239,10 +247,15 @@ impl Ord for ToolChain {
         match (self, other) {
             (ToolChain::Local, ToolChain::Local) => std::cmp::Ordering::Equal,
             (ToolChain::Local, _) => std::cmp::Ordering::Greater,
+            (ToolChain::Nightly, ToolChain::Local) => std::cmp::Ordering::Less,
+            (ToolChain::Nightly, ToolChain::Nightly) => std::cmp::Ordering::Equal,
+            (ToolChain::Nightly, _) => std::cmp::Ordering::Greater,
             (ToolChain::Latest, ToolChain::Local) => std::cmp::Ordering::Less,
+            (ToolChain::Latest, ToolChain::Nightly) => std::cmp::Ordering::Less,
             (ToolChain::Latest, ToolChain::Latest) => std::cmp::Ordering::Equal,
             (ToolChain::Latest, _) => std::cmp::Ordering::Greater,
             (ToolChain::Version(_), ToolChain::Local) => std::cmp::Ordering::Less,
+            (ToolChain::Version(_), ToolChain::Nightly) => std::cmp::Ordering::Less,
             (ToolChain::Version(_), ToolChain::Latest) => std::cmp::Ordering::Less,
             (ToolChain::Version(x), ToolChain::Version(y)) => x.cmp(y),
         }
