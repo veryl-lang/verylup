@@ -246,6 +246,15 @@ pub async fn main() -> Result<()> {
             let toolchain = ToolChain::Latest;
             toolchain.install(&x.pkg).await?;
 
+            if ToolChain::list().contains(&ToolChain::Nightly) {
+                if config.offline {
+                    info!("nightly toolchain is ignored in offline mode");
+                } else {
+                    let toolchain = ToolChain::Nightly;
+                    toolchain.install(&None).await?;
+                }
+            }
+
             if !config.offline {
                 self_update().await?;
             }
