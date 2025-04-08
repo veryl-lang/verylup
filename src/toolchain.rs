@@ -82,7 +82,7 @@ impl ToolChain {
         if let Ok(dirs) = std::fs::read_dir(Self::base_dir()) {
             for dir in dirs.flatten() {
                 let path = dir.path();
-                let name = path.components().last();
+                let name = path.components().next_back();
                 if let Some(Component::Normal(x)) = name {
                     if let Ok(x) = ToolChain::try_from(&x.to_string_lossy().into_owned()) {
                         ret.push(x);
@@ -99,11 +99,7 @@ impl ToolChain {
         let path = Self::base_dir().join(name);
 
         if path.exists() {
-            if let Ok(x) = ToolChain::try_from(name) {
-                Some(x)
-            } else {
-                None
-            }
+            ToolChain::try_from(name).ok()
         } else {
             None
         }
