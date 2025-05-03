@@ -63,6 +63,10 @@ pub struct OptInstall {
     /// Toolchain package path for offline installation
     #[arg(long)]
     pkg: Option<PathBuf>,
+
+    /// Debug build for local install
+    #[arg(long)]
+    debug: bool,
 }
 
 /// Uninstall a given toolchain
@@ -244,14 +248,14 @@ pub async fn main() -> Result<()> {
             }
 
             let toolchain = ToolChain::Latest;
-            toolchain.install(&x.pkg).await?;
+            toolchain.install(&x.pkg, false).await?;
 
             if ToolChain::list().contains(&ToolChain::Nightly) {
                 if config.offline {
                     info!("nightly toolchain is ignored in offline mode");
                 } else {
                     let toolchain = ToolChain::Nightly;
-                    toolchain.install(&None).await?;
+                    toolchain.install(&None, false).await?;
                 }
             }
 
@@ -266,7 +270,7 @@ pub async fn main() -> Result<()> {
             }
 
             let toolchain = ToolChain::try_from(&x.target)?;
-            toolchain.install(&x.pkg).await?;
+            toolchain.install(&x.pkg, x.debug).await?;
         }
         Commands::Uninstall(x) => {
             let toolchain = ToolChain::try_from(&x.target)?;
@@ -317,7 +321,7 @@ pub async fn main() -> Result<()> {
             }
 
             let toolchain = ToolChain::Latest;
-            toolchain.install(&x.pkg).await?;
+            toolchain.install(&x.pkg, false).await?;
             let self_path = env::current_exe()?;
             update_link(&self_path)?;
         }

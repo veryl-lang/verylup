@@ -105,7 +105,7 @@ impl ToolChain {
         }
     }
 
-    pub async fn install(&self, pkg: &Option<PathBuf>) -> Result<()> {
+    pub async fn install(&self, pkg: &Option<PathBuf>, debug: bool) -> Result<()> {
         let file = if let Some(pkg) = pkg {
             info!("extracting toolchain package: {}", pkg.to_string_lossy());
 
@@ -151,7 +151,7 @@ impl ToolChain {
                     }
                 }
                 ToolChain::Local => {
-                    local_install()?;
+                    local_install(debug)?;
                     return Ok(());
                 }
                 ToolChain::Nightly => None,
@@ -264,7 +264,7 @@ impl PartialOrd for ToolChain {
     }
 }
 
-fn local_install() -> Result<()> {
+fn local_install(debug: bool) -> Result<()> {
     let output = Command::new("cargo")
         .arg("metadata")
         .arg("--no-deps")
@@ -278,40 +278,42 @@ fn local_install() -> Result<()> {
     let root = temp.path();
     let bin = root.join("bin");
 
-    let mut built = false;
+    let is_veryl = metadata["packages"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|x| TOOLS.contains(&x["name"].as_str().unwrap()));
 
-    let env_path = if let Some(path) = std::env::var_os("PATH") {
-        let mut paths: Vec<_> = std::env::split_paths(&path).collect();
-        paths.push(bin.clone());
-        std::env::join_paths(paths)?
-    } else {
-        bail!("");
-    };
-
-    for pkg in metadata["packages"].as_array().unwrap() {
-        let name = pkg["name"].as_str().unwrap();
-        if TOOLS.contains(&name) {
-            let manifest = PathBuf::from(pkg["manifest_path"].as_str().unwrap());
-            let path = manifest.parent().unwrap();
-
-            info!("building local toolchain: {name}");
-
-            let mut child = Command::new("cargo")
-                .arg("install")
-                .arg("--path")
-                .arg(path)
-                .arg("--root")
-                .arg(root)
-                .env("PATH", &env_path)
-                .spawn()?;
-
-            child.wait()?;
-            built = true;
-        }
+    if !is_veryl {
+        bail!("this is not Veryl's repository");
     }
 
-    if !built {
-        bail!("this is not Veryl's repository");
+    info!("building local toolchain");
+
+    let build_args = if debug {
+        vec!["build"]
+    } else {
+        vec!["build", "--release"]
+    };
+
+    let mut child = Command::new("cargo").args(build_args).spawn()?;
+    child.wait()?;
+
+    if !bin.exists() {
+        fs::create_dir_all(&bin)?;
+    }
+
+    let target = PathBuf::from(metadata["target_directory"].as_str().unwrap());
+    let target = if debug {
+        target.join("debug")
+    } else {
+        target.join("release")
+    };
+
+    for tool in TOOLS {
+        let src = target.join(tool);
+        let dst = bin.join(tool);
+        fs::copy(&src, &dst)?;
     }
 
     let dir = ToolChain::Local.get_dir();
