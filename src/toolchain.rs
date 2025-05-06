@@ -293,7 +293,13 @@ fn local_install(debug: bool) -> Result<()> {
     let build_args = if debug {
         vec!["build"]
     } else {
-        vec!["build", "--release"]
+        let toml = PathBuf::from(metadata["workspace_root"].as_str().unwrap()).join("Cargo.toml");
+        let toml = fs::read_to_string(toml)?;
+        if toml.contains("[profile.release-verylup]") {
+            vec!["build", "--profile", "release-verylup"]
+        } else {
+            vec!["build", "--release"]
+        }
     };
 
     let revision = Command::new("git")
