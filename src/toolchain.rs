@@ -296,7 +296,26 @@ fn local_install(debug: bool) -> Result<()> {
         vec!["build", "--release"]
     };
 
-    let mut child = Command::new("cargo").args(build_args).spawn()?;
+    let revision = Command::new("git")
+        .arg("log")
+        .arg("-1")
+        .arg("--format=\"%h\"")
+        .output()?;
+    let revision = String::from_utf8(revision.stdout).unwrap();
+    let revision = revision.trim_matches(['"', '\n']);
+    let date = chrono::Local::now();
+    let version = metadata["packages"][0]["version"].as_str().unwrap();
+    let version = format!(
+        "{}-local ({} {})",
+        version,
+        revision,
+        date.format("%Y-%m-%d")
+    );
+
+    let mut child = Command::new("cargo")
+        .args(build_args)
+        .env("VERSION", version)
+        .spawn()?;
     child.wait()?;
 
     if !bin.exists() {
