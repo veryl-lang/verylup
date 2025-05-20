@@ -290,15 +290,18 @@ fn local_install(debug: bool) -> Result<()> {
 
     info!("building local toolchain");
 
-    let build_args = if debug {
-        vec!["build"]
+    let (build_args, target_path) = if debug {
+        (vec!["build"], "debug")
     } else {
         let toml = PathBuf::from(metadata["workspace_root"].as_str().unwrap()).join("Cargo.toml");
         let toml = fs::read_to_string(toml)?;
         if toml.contains("[profile.release-verylup]") {
-            vec!["build", "--profile", "release-verylup"]
+            (
+                vec!["build", "--profile", "release-verylup"],
+                "release-verylup",
+            )
         } else {
-            vec!["build", "--release"]
+            (vec!["build", "--release"], "release")
         }
     };
 
@@ -329,11 +332,7 @@ fn local_install(debug: bool) -> Result<()> {
     }
 
     let target = PathBuf::from(metadata["target_directory"].as_str().unwrap());
-    let target = if debug {
-        target.join("debug")
-    } else {
-        target.join("release")
-    };
+    let target = target.join(target_path);
 
     for tool in TOOLS {
         let src = target.join(tool);
