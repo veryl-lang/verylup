@@ -25,7 +25,7 @@ serde_derive  = "1.0"
 serde_json    = "1.0"
 tempfile      = "3.20"
 tokio         = {version = "1.45", features = ["full"]}
-toml          = "0.8.22"
+toml          = "0.8.23"
 zip           = "4.0"
 
 [target."cfg(windows)".dependencies.windows-sys]
