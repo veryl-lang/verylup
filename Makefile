@@ -27,6 +27,10 @@ release_lnx:
 	cargo build --locked --release --target=x86_64-unknown-linux-musl $(addprefix --bin , ${BIN_NAMES})
 	zip -j ${ZIP_NAME}-x86_64-linux.zip $(addprefix target/x86_64-unknown-linux-musl/release/, ${BIN_NAMES})
 
+release_lnx_aarch64:
+	cargo build --locked --release --target=aarch64-unknown-linux-musl $(addprefix --bin , ${BIN_NAMES})
+	zip -j ${ZIP_NAME}-aarch64-linux.zip $(addprefix target/aarch64-unknown-linux-musl/release/, ${BIN_NAMES})
+
 release_win:
 	cargo build --locked --release --target=x86_64-pc-windows-msvc $(addprefix --bin , ${BIN_NAMES})
 	mv -v $(addsuffix .exe, $(addprefix target/x86_64-pc-windows-msvc/release/, ${BIN_NAMES})) ./
