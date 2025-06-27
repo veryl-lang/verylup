@@ -215,6 +215,7 @@ pub async fn main() -> Result<()> {
             ))
         })
         .level(level)
+        .level_for("reqwest", LevelFilter::Warn)
         .chain(std::io::stderr())
         .apply()?;
 
