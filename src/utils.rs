@@ -29,7 +29,7 @@ pub fn get_archive_url(project: &str, version: &Version) -> Result<Url> {
     } else if TARGET.starts_with("aarch64-apple") {
         format!("{project}-aarch64-mac.zip")
     } else {
-        bail!("unknown target");
+        bail!("unknown target :{TARGET}");
     };
 
     let url =
@@ -48,7 +48,7 @@ pub fn get_nightly_url() -> Result<Url> {
     } else if TARGET.starts_with("aarch64-apple") {
         "veryl-aarch64-mac.zip"
     } else {
-        bail!("unknown target");
+        bail!("unknown target :{TARGET}");
     };
 
     let url = format!("https://static.veryl-lang.org/toolchain/nightly/{archive}");
