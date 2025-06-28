@@ -16,6 +16,9 @@ pub struct Config {
 
     #[serde(default)]
     pub offline: bool,
+
+    #[serde(default)]
+    pub proxy: Option<String>,
 }
 
 impl Config {
@@ -59,6 +62,11 @@ impl Config {
                 self.offline = value;
                 info!("changed: offline = {value}");
             }
+            "proxy" => {
+                // TODO: check proxy address.
+                self.proxy = Some(value.to_string());
+                info!("changed: proxy = {value}");
+            }
             _ => {
                 bail!("Unknown key: {}", key)
             }
@@ -72,6 +80,10 @@ impl fmt::Display for Config {
         let mut ret = String::new();
         ret.push_str("Verylup configuration\n");
         ret.push_str(&format!("  offline: {}\n", self.offline));
+        ret.push_str(&format!(
+            "  proxy: {}\n",
+            self.proxy.clone().unwrap_or("".to_string())
+        ));
         ret.fmt(f)
     }
 }
