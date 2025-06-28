@@ -249,14 +249,14 @@ pub async fn main() -> Result<()> {
             }
 
             let toolchain = ToolChain::Latest;
-            toolchain.install(&x.pkg, false).await?;
+            toolchain.install(&x.pkg, false, &config).await?;
 
             if ToolChain::list().contains(&ToolChain::Nightly) {
                 if config.offline {
                     info!("nightly toolchain is ignored in offline mode");
                 } else {
                     let toolchain = ToolChain::Nightly;
-                    toolchain.install(&None, false).await?;
+                    toolchain.install(&None, false, &config).await?;
                 }
             }
 
@@ -271,7 +271,7 @@ pub async fn main() -> Result<()> {
             }
 
             let toolchain = ToolChain::try_from(&x.target)?;
-            toolchain.install(&x.pkg, x.debug).await?;
+            toolchain.install(&x.pkg, x.debug, &config).await?;
         }
         Commands::Uninstall(x) => {
             let toolchain = ToolChain::try_from(&x.target)?;
@@ -311,18 +311,18 @@ pub async fn main() -> Result<()> {
             }
         }
         Commands::Setup(x) => {
+            let mut config = Config::load();
             if x.offline {
                 if x.pkg.is_none() {
                     bail!("\"--pkg\" is required in offline mode");
                 }
 
-                let mut config = Config::load();
                 config.offline = true;
                 config.save()?;
             }
 
             let toolchain = ToolChain::Latest;
-            toolchain.install(&x.pkg, false).await?;
+            toolchain.install(&x.pkg, false, &config).await?;
             let self_path = env::current_exe()?;
             update_link(&self_path)?;
         }
@@ -371,14 +371,15 @@ pub async fn main() -> Result<()> {
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 async fn self_update() -> Result<()> {
-    let latest_version = get_latest_version("verylup").await?;
+    let config = Config::load();
+    let latest_version = get_latest_version("verylup", &config).await?;
     let self_version = Version::parse(VERSION)?;
 
     if latest_version > self_version {
         info!("downloading verylup: {latest_version}");
 
         let url = get_archive_url("verylup", &latest_version)?;
-        let data = download(&url).await?;
+        let data = download(&url, &config).await?;
         let mut file = tempfile::tempfile()?;
         file.write_all(&data)?;
 

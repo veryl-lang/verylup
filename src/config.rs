@@ -82,7 +82,7 @@ impl fmt::Display for Config {
         ret.push_str(&format!("  offline: {}\n", self.offline));
         ret.push_str(&format!(
             "  proxy: {}\n",
-            self.proxy.clone().unwrap_or("null".to_string())
+            self.proxy.clone().unwrap_or("".to_string())
         ));
         ret.fmt(f)
     }

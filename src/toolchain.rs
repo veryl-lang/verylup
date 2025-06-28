@@ -105,7 +105,7 @@ impl ToolChain {
         }
     }
 
-    pub async fn install(&self, pkg: &Option<PathBuf>, debug: bool) -> Result<()> {
+    pub async fn install(&self, pkg: &Option<PathBuf>, debug: bool, config: &Config) -> Result<()> {
         let file = if let Some(pkg) = pkg {
             info!("extracting toolchain package: {}", pkg.to_string_lossy());
 
@@ -128,7 +128,7 @@ impl ToolChain {
         } else {
             let version = match self {
                 ToolChain::Latest => {
-                    let latest = get_latest_version("veryl").await?;
+                    let latest = get_latest_version("veryl", config).await?;
                     if let Ok(actual) = self.get_actual_version() {
                         if latest != actual {
                             Some(latest)
@@ -169,7 +169,7 @@ impl ToolChain {
 
             info!("downloading toolchain: {self}");
 
-            let data = download(&url).await?;
+            let data = download(&url, config).await?;
             let mut file = tempfile::tempfile()?;
             file.write_all(&data)?;
             file
