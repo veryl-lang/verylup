@@ -14,6 +14,9 @@ jobs:
           - os: ubuntu-latest
             rust: stable
             target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            rust: stable
+            target: aarch64-unknown-linux-gnu
           - os: macOS-latest
             rust: stable
             target: x86_64-apple-darwin
@@ -33,9 +36,9 @@ jobs:
         run: |
           cargo build --target ${{ matrix.target }}
           ./target/${{ matrix.target }}/debug/verylup setup
-          ./target/${{ matrix.target }}/debug/verylup install 0.11.0
+          ./target/${{ matrix.target }}/debug/verylup install 0.16.2
           ./target/${{ matrix.target }}/debug/veryl --version
-          ./target/${{ matrix.target }}/debug/veryl +0.11.0 --version
+          ./target/${{ matrix.target }}/debug/veryl +0.16.2 --version
 
   rustfmt:
     runs-on: ubuntu-latest
