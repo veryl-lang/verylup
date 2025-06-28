@@ -1,5 +1,6 @@
+use crate::config::Config;
 use anyhow::{anyhow, bail, Result};
-use reqwest::Url;
+use reqwest::{Response, Url};
 use semver::Version;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -7,9 +8,22 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use zip::ZipArchive;
 
+async fn get_url(url: String) -> Result<Response, reqwest::Error> {
+    let builder = reqwest::ClientBuilder::new();
+    let config = Config::load();
+    let builder = match config.proxy {
+        Some(proxy) => {
+            builder.proxy(reqwest::Proxy::all(proxy).expect("proxy error"))
+        },
+        None => builder,
+    };
+    let client = builder.build().expect("build error");
+    client.get(url.clone()).send().await
+}
+
 pub async fn get_latest_version(project: &str) -> Result<Version> {
     let url = format!("https://github.com/veryl-lang/{project}/releases/latest");
-    let resp = reqwest::get(url).await?;
+    let resp = get_url(url).await?;
     let path = resp.url().path();
     let version = path.split("/").last().unwrap();
     let version = version.strip_prefix('v').unwrap();
@@ -71,7 +85,7 @@ pub fn set_exec(_file: &mut File) -> Result<()> {
 }
 
 pub async fn download(url: &Url) -> Result<Vec<u8>> {
-    let resp = reqwest::get(url.clone()).await?;
+    let resp = get_url(url.to_string()).await?;
 
     if !resp.status().is_success() {
         bail!("failed to download the archive: {url}");
