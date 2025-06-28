@@ -12,9 +12,7 @@ async fn get_url(url: String) -> Result<Response, reqwest::Error> {
     let builder = reqwest::ClientBuilder::new();
     let config = Config::load();
     let builder = match config.proxy {
-        Some(proxy) => {
-            builder.proxy(reqwest::Proxy::all(proxy).expect("proxy error"))
-        },
+        Some(proxy) => builder.proxy(reqwest::Proxy::all(proxy).expect("proxy error")),
         None => builder,
     };
     let client = builder.build().expect("build error");

@@ -80,7 +80,10 @@ impl fmt::Display for Config {
         let mut ret = String::new();
         ret.push_str("Verylup configuration\n");
         ret.push_str(&format!("  offline: {}\n", self.offline));
-        ret.push_str(&format!("  proxy: {}\n", self.proxy.clone().unwrap_or("null".to_string())));
+        ret.push_str(&format!(
+            "  proxy: {}\n",
+            self.proxy.clone().unwrap_or("null".to_string())
+        ));
         ret.fmt(f)
     }
 }
