@@ -149,6 +149,7 @@ pub struct OptConfig {
 pub enum ConfigCommand {
     Show(OptConfigShow),
     Set(OptConfigSet),
+    Unset(OptConfigUnset),
 }
 
 /// Show the current configuration
@@ -160,6 +161,12 @@ pub struct OptConfigShow {}
 pub struct OptConfigSet {
     key: String,
     value: String,
+}
+
+/// Remove an entry of the configuration
+#[derive(Args)]
+pub struct OptConfigUnset {
+    key: String,
 }
 
 impl std::fmt::Display for CompletionShell {
@@ -360,6 +367,11 @@ pub async fn main() -> Result<()> {
             ConfigCommand::Set(x) => {
                 let mut config = Config::load();
                 config.set(&x.key, &x.value)?;
+                config.save()?;
+            }
+            ConfigCommand::Unset(x) => {
+                let mut config = Config::load();
+                config.unset(&x.key)?;
                 config.save()?;
             }
         },
