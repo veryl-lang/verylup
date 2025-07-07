@@ -60,12 +60,29 @@ impl Config {
             "offline" => {
                 let value: bool = value.parse()?;
                 self.offline = value;
-                info!("changed: offline = {value}");
+                info!("set: offline = {value}");
             }
             "proxy" => {
                 // TODO: check proxy address.
                 self.proxy = Some(value.to_string());
-                info!("changed: proxy = {value}");
+                info!("set: proxy = {value}");
+            }
+            _ => {
+                bail!("Unknown key: {}", key)
+            }
+        }
+        Ok(())
+    }
+
+    pub fn unset(&mut self, key: &str) -> Result<()> {
+        match key {
+            "offline" => {
+                self.offline = false;
+                info!("unset: offline");
+            }
+            "proxy" => {
+                self.proxy = None;
+                info!("unset: proxy");
             }
             _ => {
                 bail!("Unknown key: {}", key)
@@ -80,10 +97,9 @@ impl fmt::Display for Config {
         let mut ret = String::new();
         ret.push_str("Verylup configuration\n");
         ret.push_str(&format!("  offline: {}\n", self.offline));
-        ret.push_str(&format!(
-            "  proxy: {}\n",
-            self.proxy.clone().unwrap_or("".to_string())
-        ));
+        if let Some(x) = &self.proxy {
+            ret.push_str(&format!("  proxy: {x}\n"));
+        }
         ret.fmt(f)
     }
 }
