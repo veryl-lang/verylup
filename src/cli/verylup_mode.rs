@@ -119,6 +119,10 @@ pub struct OptSetup {
     /// Toolchain package path for offline installation
     #[arg(long)]
     pkg: Option<PathBuf>,
+
+    /// Disable self-update
+    #[arg(long)]
+    no_self_update: bool,
 }
 
 /// Generate tab-completion scripts for your shell
@@ -327,6 +331,10 @@ pub async fn main() -> Result<()> {
                 config.offline = true;
                 config.save()?;
             }
+            if x.no_self_update {
+                config.self_update = false;
+                config.save()?;
+            }
 
             let toolchain = ToolChain::Latest;
             toolchain.install(&x.pkg, false, &config).await?;
@@ -387,29 +395,33 @@ async fn self_update() -> Result<()> {
     let latest_version = get_latest_version("verylup", &config).await?;
     let self_version = Version::parse(VERSION)?;
 
-    if latest_version > self_version {
-        info!("downloading verylup: {latest_version}");
+    if config.self_update {
+        if latest_version > self_version {
+            info!("downloading verylup: {latest_version}");
 
-        let url = get_archive_url("verylup", &latest_version)?;
-        let data = download(&url, &config).await?;
-        let mut file = tempfile::tempfile()?;
-        file.write_all(&data)?;
+            let url = get_archive_url("verylup", &latest_version)?;
+            let data = download(&url, &config).await?;
+            let mut file = tempfile::tempfile()?;
+            file.write_all(&data)?;
 
-        info!("installing verylup: {latest_version}");
+            info!("installing verylup: {latest_version}");
 
-        let dir = tempfile::tempdir()?;
+            let dir = tempfile::tempdir()?;
 
-        unzip(&file, dir.path())?;
+            unzip(&file, dir.path())?;
 
-        let binary = dir.path().join("verylup");
+            let binary = dir.path().join("verylup");
 
-        // save self_path before replacing
-        let self_path = env::current_exe()?;
+            // save self_path before replacing
+            let self_path = env::current_exe()?;
 
-        self_replace::self_replace(binary)?;
-        update_link(&self_path)?;
+            self_replace::self_replace(binary)?;
+            update_link(&self_path)?;
+        } else {
+            info!("checking verylup: {self_version} (up-to-date)");
+        }
     } else {
-        info!("checking verylup: {self_version} (up-to-date)");
+        info!("self-update is disabled");
     }
     Ok(())
 }
