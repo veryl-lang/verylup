@@ -19,6 +19,13 @@ pub struct Config {
 
     #[serde(default)]
     pub proxy: Option<String>,
+
+    #[serde(default = "default_self_update")]
+    pub self_update: bool,
+}
+
+fn default_self_update() -> bool {
+    true
 }
 
 impl Config {
@@ -100,6 +107,7 @@ impl fmt::Display for Config {
         if let Some(x) = &self.proxy {
             ret.push_str(&format!("  proxy: {x}\n"));
         }
+        ret.push_str(&format!("  self_update: {}\n", self.self_update));
         ret.fmt(f)
     }
 }
