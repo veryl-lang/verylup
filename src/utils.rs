@@ -1,5 +1,5 @@
 use crate::config::Config;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use reqwest::{Response, Url};
 use semver::Version;
 use std::fs::File;
@@ -102,11 +102,13 @@ pub fn unzip(file: &File, dir: &Path) -> Result<()> {
     for i in 0..zip.len() {
         let mut src = zip.by_index(i)?;
         let path = dir.join(src.name());
-        let mut tgt = File::create(&path)?;
+        let path_str = path.to_string_lossy();
+        let mut tgt = File::create(&path).with_context(|| format!("creating {path_str}"))?;
         let mut buf = Vec::new();
         src.read_to_end(&mut buf)?;
-        tgt.write_all(&buf)?;
-        set_exec(&mut tgt)?;
+        tgt.write_all(&buf)
+            .with_context(|| format!("writing {path_str}"))?;
+        set_exec(&mut tgt).with_context(|| format!("setting permission of {path_str}"))?;
     }
     Ok(())
 }
