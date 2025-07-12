@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::utils::*;
-use anyhow::{anyhow, bail, Error, Result};
+use anyhow::{anyhow, bail, Context, Error, Result};
 use directories::ProjectDirs;
 use log::info;
 use semver::Version;
@@ -179,7 +179,8 @@ impl ToolChain {
 
         let dir = self.get_dir();
         if !dir.exists() {
-            fs::create_dir_all(&dir)?;
+            fs::create_dir_all(&dir)
+                .with_context(|| format!("creating {}", dir.to_string_lossy()))?;
         }
 
         unzip(&file, &dir)?;
