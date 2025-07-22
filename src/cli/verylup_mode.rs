@@ -390,12 +390,17 @@ pub async fn main() -> Result<()> {
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+#[cfg(feature = "no-self-update")]
+const NEVER_SELF_UPDATE: bool = true;
+#[cfg(not(feature = "no-self-update"))]
+const NEVER_SELF_UPDATE: bool = false;
+
 async fn self_update() -> Result<()> {
     let config = Config::load();
     let latest_version = get_latest_version("verylup", &config).await?;
     let self_version = Version::parse(VERSION)?;
 
-    if config.self_update {
+    if config.self_update && !NEVER_SELF_UPDATE {
         if latest_version > self_version {
             info!("downloading verylup: {latest_version}");
 
@@ -420,6 +425,8 @@ async fn self_update() -> Result<()> {
         } else {
             info!("checking verylup: {self_version} (up-to-date)");
         }
+    } else if NEVER_SELF_UPDATE {
+        info!("self-update is disabled: you should probably use your system package manager to update verylup");
     } else {
         info!("self-update is disabled");
     }
