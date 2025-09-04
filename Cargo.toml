@@ -50,7 +50,7 @@ features = [
   "Win32_UI",
   "Win32_UI_WindowsAndMessaging",
 ]
-version = "0.60"
+version = "0.61"
 
 [package.metadata.release]
 tag = true
