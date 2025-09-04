@@ -19,7 +19,7 @@ chrono        = "0.4.41"
 console       = "0.16.0"
 directories   = "6.0"
 fern          = "0.7.0"
-log           = "0.4.27"
+log           = "0.4.28"
 reqwest       = {version = "0.12.23", default-features = false, features = ["rustls-tls", "json", "socks"]}
 self-replace  = "1.5"
 semver        = {version = "1.0", features = ["serde"]}
