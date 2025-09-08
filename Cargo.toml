@@ -15,7 +15,7 @@ no-self-update = []
 anyhow        = "1.0"
 clap          = {version = "4.5", features = ["derive"]}
 clap_complete = "4.5"
-chrono        = "0.4.41"
+chrono        = "0.4.42"
 console       = "0.16.1"
 directories   = "6.0"
 fern          = "0.7.0"
