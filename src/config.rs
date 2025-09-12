@@ -6,7 +6,7 @@ use std::fmt;
 use std::fs;
 use std::path::PathBuf;
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Config {
     #[serde(default)]
     pub default_toolchain: Option<String>,
@@ -109,5 +109,11 @@ impl fmt::Display for Config {
         }
         ret.push_str(&format!("  self_update: {}\n", self.self_update));
         ret.fmt(f)
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        toml::from_str("").unwrap_or_else(|_| Self::default())
     }
 }
