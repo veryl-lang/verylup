@@ -1,6 +1,6 @@
 [package]
 name        = "verylup"
-version     = "0.1.7"
+version     = "0.1.8"
 authors     = ["dalance@gmail.com"]
 repository  = "https://github.com/veryl-lang/verylup"
 license     = "MIT OR Apache-2.0"
