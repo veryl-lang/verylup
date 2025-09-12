@@ -44,9 +44,14 @@ impl ToolChain {
     }
 
     fn base_dir() -> PathBuf {
-        let project_dir = ProjectDirs::from("org", "veryl-lang", "veryl").unwrap();
-        let data_path = project_dir.data_dir().to_path_buf();
-        data_path.join("toolchains")
+        if let Ok(val) = std::env::var("VERYLUP_HOME") {
+            let path = PathBuf::from(val);
+            path.join("toolchains")
+        } else {
+            let project_dir = ProjectDirs::from("org", "veryl-lang", "veryl").unwrap();
+            let data_path = project_dir.data_dir().to_path_buf();
+            data_path.join("toolchains")
+        }
     }
 
     pub fn exists(&self) -> bool {
