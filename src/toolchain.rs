@@ -30,7 +30,12 @@ impl ToolChain {
 
         let output = Command::new(path).arg("--version").output()?;
         let version = String::from_utf8(output.stdout)?;
-        let version = version.strip_prefix("veryl ").unwrap().trim_end();
+        let version = version
+            .strip_prefix("veryl ")
+            .unwrap()
+            .split_ascii_whitespace()
+            .next()
+            .unwrap();
         let version = Version::parse(version)?;
         Ok(version)
     }
