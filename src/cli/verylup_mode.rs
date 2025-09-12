@@ -123,6 +123,10 @@ pub struct OptSetup {
     /// Disable self-update
     #[arg(long)]
     no_self_update: bool,
+
+    /// Specify a toolchain to install at setup
+    #[arg(long)]
+    toolchain: Option<String>,
 }
 
 /// Generate tab-completion scripts for your shell
@@ -336,7 +340,15 @@ pub async fn main() -> Result<()> {
                 config.save()?;
             }
 
-            let toolchain = ToolChain::Latest;
+            let toolchain = if let Some(x) = &x.toolchain {
+                let toolchain = ToolChain::try_from(x)?;
+                config.default_toolchain = Some(toolchain.to_string());
+                config.save()?;
+                toolchain
+            } else {
+                ToolChain::Latest
+            };
+
             toolchain.install(&x.pkg, false, &config).await?;
             let self_path = env::current_exe()?;
             update_link(&self_path)?;
