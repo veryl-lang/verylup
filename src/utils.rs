@@ -39,6 +39,8 @@ pub fn get_archive_url(project: &str, version: &Version) -> Result<Url> {
         format!("{project}-aarch64-linux.zip")
     } else if TARGET.starts_with("x86_64-pc-windows") {
         format!("{project}-x86_64-windows.zip")
+    } else if TARGET.starts_with("aarch64-pc-windows") {
+        format!("{project}-aarch64-windows.zip")
     } else if TARGET.starts_with("x86_64-apple") {
         format!("{project}-x86_64-mac.zip")
     } else if TARGET.starts_with("aarch64-apple") {
@@ -60,6 +62,8 @@ pub fn get_nightly_url() -> Result<Url> {
         "veryl-aarch64-linux.zip"
     } else if TARGET.starts_with("x86_64-pc-windows") {
         "veryl-x86_64-windows.zip"
+    } else if TARGET.starts_with("aarch64-pc-windows") {
+        "veryl-aarch64-windows.zip"
     } else if TARGET.starts_with("x86_64-apple") {
         "veryl-x86_64-mac.zip"
     } else if TARGET.starts_with("aarch64-apple") {
