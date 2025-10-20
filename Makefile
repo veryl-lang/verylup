@@ -36,6 +36,11 @@ release_win:
 	mv -v $(addsuffix .exe, $(addprefix target/x86_64-pc-windows-msvc/release/, ${BIN_NAMES})) ./
 	7z a ${ZIP_NAME}-x86_64-windows.zip $(addsuffix .exe, ${BIN_NAMES})
 
+release_win_aarch64:
+	cargo build --locked --release --target=aarch64-pc-windows-msvc $(addprefix --bin , ${BIN_NAMES})
+	mv -v $(addsuffix .exe, $(addprefix target/aarch64-pc-windows-msvc/release/, ${BIN_NAMES})) ./
+	7z a ${ZIP_NAME}-aarch64-windows.zip $(addsuffix .exe, ${BIN_NAMES})
+
 release_mac:
 	cargo build --locked --release --target=x86_64-apple-darwin  $(addprefix --bin , ${BIN_NAMES})
 	cargo build --locked --release --target=aarch64-apple-darwin $(addprefix --bin , ${BIN_NAMES})
