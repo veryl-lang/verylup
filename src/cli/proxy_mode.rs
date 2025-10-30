@@ -1,6 +1,7 @@
 use crate::exec::exec;
 use crate::toolchain::ToolChain;
 use anyhow::{anyhow, bail, Result};
+use semver::VersionReq;
 use std::env;
 use std::process::Command;
 
@@ -9,7 +10,7 @@ pub async fn main(arg0: &str) -> Result<()> {
     let toolchain = arg1
         .as_ref()
         .filter(|x| x.starts_with('+'))
-        .map(|x| ToolChain::try_from(&x[1..]))
+        .map(|x| gen_toolchain(&x[1..]))
         .transpose()?;
 
     let cmd_args: Vec<_> = env::args_os()
@@ -29,4 +30,23 @@ pub async fn main(arg0: &str) -> Result<()> {
     exec(&mut cmd)?;
 
     Ok(())
+}
+
+fn gen_toolchain(s: &str) -> Result<ToolChain> {
+    let ret = ToolChain::try_from(s);
+
+    // Fallback to VersionReq format (e.g. "+0.16")
+    if ret.is_err() {
+        if let Ok(version_req) = VersionReq::parse(s) {
+            for toolchain in ToolChain::list().into_iter().rev() {
+                if let ToolChain::Version(x) = &toolchain {
+                    if version_req.matches(x) {
+                        return Ok(toolchain);
+                    }
+                }
+            }
+        }
+    }
+
+    ret
 }
