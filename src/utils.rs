@@ -77,6 +77,12 @@ pub fn get_nightly_url() -> Result<Url> {
     Ok(url)
 }
 
+pub fn get_nightly_version_url() -> Result<Url> {
+    let url = "https://static.veryl-lang.org/toolchain/nightly/version";
+    let url = Url::parse(url)?;
+    Ok(url)
+}
+
 #[cfg(not(windows))]
 pub fn set_exec(file: &mut File) -> Result<()> {
     use std::os::unix::fs::PermissionsExt;
