@@ -251,7 +251,7 @@ pub async fn main() -> Result<()> {
                     }
                     ToolChain::Nightly => {
                         if let Ok(version) = x.get_version_string() {
-                            let version = version.strip_prefix("veryl ").unwrap();
+                            let version = version.strip_prefix("veryl ").unwrap().trim();
                             format!("{x}: {version}")
                         } else {
                             x.to_string()
