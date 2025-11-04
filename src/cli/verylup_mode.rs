@@ -241,14 +241,23 @@ pub async fn main() -> Result<()> {
 
             let default_toolchain = ToolChain::default_toolchain();
             for x in ToolChain::list() {
-                let text = if x == ToolChain::Latest {
-                    if let Ok(version) = x.get_actual_version() {
-                        format!("{x}: {version}")
-                    } else {
-                        x.to_string()
+                let text = match x {
+                    ToolChain::Latest => {
+                        if let Ok(version) = x.get_actual_version() {
+                            format!("{x}: {version}")
+                        } else {
+                            x.to_string()
+                        }
                     }
-                } else {
-                    x.to_string()
+                    ToolChain::Nightly => {
+                        if let Ok(version) = x.get_version_string() {
+                            let version = version.strip_prefix("veryl ").unwrap();
+                            format!("{x}: {version}")
+                        } else {
+                            x.to_string()
+                        }
+                    }
+                    _ => x.to_string(),
                 };
                 if Some(&x) == default_toolchain.as_ref() {
                     println!("{text} (default)");
