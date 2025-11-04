@@ -21,7 +21,7 @@ pub enum ToolChain {
 }
 
 impl ToolChain {
-    pub fn get_actual_version(&self) -> Result<Version> {
+    pub fn get_version_string(&self) -> Result<String> {
         let path = if cfg!(target_os = "windows") {
             self.get_path("veryl.exe")
         } else {
@@ -29,7 +29,11 @@ impl ToolChain {
         };
 
         let output = Command::new(path).arg("--version").output()?;
-        let version = String::from_utf8(output.stdout)?;
+        Ok(String::from_utf8(output.stdout)?)
+    }
+
+    pub fn get_actual_version(&self) -> Result<Version> {
+        let version = self.get_version_string()?;
         let version = version
             .strip_prefix("veryl ")
             .unwrap()
@@ -168,6 +172,14 @@ impl ToolChain {
             };
 
             let url = if self == &ToolChain::Nightly {
+                let latest_version = get_nightly_version_url()?;
+                let latest_version = download(&latest_version, config).await?;
+                let latest_version = String::from_utf8(latest_version)?;
+                let actual_version = self.get_version_string()?;
+                if actual_version.ends_with(&latest_version) {
+                    info!("checking toolchain: {self} (up-to-date)");
+                    return Ok(());
+                }
                 get_nightly_url()?
             } else {
                 let Some(version) = version else {
