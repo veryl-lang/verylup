@@ -1,6 +1,6 @@
 use crate::config::Config;
 use anyhow::{anyhow, bail, Context, Result};
-use reqwest::{Response, Url};
+use reqwest::{Certificate, Response, Url};
 use semver::Version;
 use std::fs::File;
 use std::io::{Read, Write};
@@ -14,8 +14,66 @@ async fn get_url(url: &Url, config: &Config) -> Result<Response, reqwest::Error>
         Some(proxy) => builder.proxy(reqwest::Proxy::all(proxy)?),
         None => builder,
     };
+    let builder = attach_root_certificates(builder);
     let client = builder.build()?;
     client.get(url.clone()).send().await
+}
+
+fn attach_root_certificates(builder: reqwest::ClientBuilder) -> reqwest::ClientBuilder {
+    use std::fs;
+
+    let mut builder = builder;
+
+    const DEFAULT_CA_PATHS: &[&str] = &[
+        "/etc/ssl/certs/ca-certificates.crt",
+        "/etc/ssl/cert.pem",
+        "/etc/pki/tls/certs/ca-bundle.crt",
+        "/etc/ca-certificates/extracted/tls-ca-bundle.pem",
+    ];
+
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Ok(path) = std::env::var("SSL_CERT_FILE") {
+        candidates.push(PathBuf::from(path));
+    }
+
+    candidates.extend(DEFAULT_CA_PATHS.iter().map(PathBuf::from));
+
+    for path in candidates {
+        if !path.exists() {
+            continue;
+        }
+
+        match fs::read(&path) {
+            Ok(bytes) => {
+                match Certificate::from_pem_bundle(&bytes) {
+                    Ok(certs) => {
+                        for cert in certs {
+                            builder = builder.add_root_certificate(cert);
+                        }
+                        log::debug!("Loaded CA bundle from {}", path.display());
+                        return builder;
+                    }
+                    Err(bundle_err) => match Certificate::from_pem(&bytes) {
+                        Ok(cert) => {
+                            builder = builder.add_root_certificate(cert);
+                            log::debug!("Loaded CA certificate from {}", path.display());
+                            return builder;
+                        }
+                        Err(cert_err) => {
+                            log::debug!(
+                                "Failed to parse {} as PEM bundle ({bundle_err}) or single certificate ({cert_err})",
+                                path.display()
+                            );
+                        }
+                    },
+                }
+            }
+            Err(err) => {
+                log::debug!("Failed to read {}: {err}", path.display());
+            }
+        }
+    }
+    builder
 }
 
 pub async fn get_latest_version(project: &str, config: &Config) -> Result<Version> {
