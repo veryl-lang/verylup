@@ -7,7 +7,7 @@ use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::aot::Shell;
 use console::Style;
 use fern::Dispatch;
-use log::{info, Level, LevelFilter};
+use log::{info, warn, Level, LevelFilter};
 use semver::Version;
 use std::env;
 use std::fs;
@@ -287,6 +287,14 @@ pub async fn main() -> Result<()> {
             if !config.offline {
                 self_update().await?;
             }
+
+            // Check the user has run `verylup setup` and print a helpful
+            // message if not. Don't do this automatically because it
+            // has some options they might want to set.
+            let self_path = env::current_exe()?;
+            if !check_link(&self_path)? {
+                warn!("veryl link not installed; please run 'verylup setup'");
+            }
         }
         Commands::Install(x) => {
             let config = Config::load();
@@ -473,4 +481,23 @@ fn update_link(self_path: &Path) -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Check if the links created by `update_link()` exist, return Ok(false) if not.
+fn check_link(self_path: &Path) -> Result<bool> {
+    let self_path = self_path.canonicalize()?;
+
+    for tool in TOOLS {
+        info!("checking link: {tool}");
+
+        let mut tool_path = self_path.parent().unwrap().join(tool);
+        if cfg!(target_os = "windows") {
+            tool_path.set_extension("exe");
+        }
+        if !tool_path.exists() {
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
 }
