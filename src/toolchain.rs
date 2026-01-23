@@ -166,8 +166,10 @@ impl ToolChain {
                 let latest_version = get_nightly_version_url()?;
                 let latest_version = download(&latest_version, config).await?;
                 let latest_version = String::from_utf8(latest_version)?;
-                let actual_version = self.get_version_string()?;
-                if actual_version.ends_with(&latest_version) {
+                let actual_version = self.get_version_string();
+                if let Ok(actual_version) = actual_version
+                    && actual_version.ends_with(&latest_version)
+                {
                     info!("checking toolchain: {self} (up-to-date)");
                     return Ok(());
                 }
