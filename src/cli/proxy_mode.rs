@@ -1,6 +1,6 @@
 use crate::exec::exec;
 use crate::toolchain::ToolChain;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use semver::VersionReq;
 use std::env;
 use std::process::Command;
@@ -36,14 +36,14 @@ fn gen_toolchain(s: &str) -> Result<ToolChain> {
     let ret = ToolChain::try_from(s);
 
     // Fallback to VersionReq format (e.g. "+0.16")
-    if ret.is_err() {
-        if let Ok(version_req) = VersionReq::parse(s) {
-            for toolchain in ToolChain::list().into_iter().rev() {
-                if let ToolChain::Version(x) = &toolchain {
-                    if version_req.matches(x) {
-                        return Ok(toolchain);
-                    }
-                }
+    if ret.is_err()
+        && let Ok(version_req) = VersionReq::parse(s)
+    {
+        for toolchain in ToolChain::list().into_iter().rev() {
+            if let ToolChain::Version(x) = &toolchain
+                && version_req.matches(x)
+            {
+                return Ok(toolchain);
             }
         }
     }

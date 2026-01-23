@@ -1,6 +1,6 @@
 use crate::config::Config;
 use crate::utils::*;
-use anyhow::{anyhow, bail, Context, Error, Result};
+use anyhow::{Context, Error, Result, anyhow, bail};
 use directories::ProjectDirs;
 use log::info;
 use semver::Version;
@@ -72,19 +72,18 @@ impl ToolChain {
 
         // directory override
         let project = search_project();
-        if let Ok(project) = project {
-            if let Some(x) = config.overrides.get(&project) {
-                if let Some(x) = Self::by_name(x) {
-                    return Some(x);
-                }
-            }
+        if let Ok(project) = project
+            && let Some(x) = config.overrides.get(&project)
+            && let Some(x) = Self::by_name(x)
+        {
+            return Some(x);
         }
 
         // default toolchain config
-        if let Some(x) = config.default_toolchain {
-            if let Some(x) = Self::by_name(&x) {
-                return Some(x);
-            }
+        if let Some(x) = config.default_toolchain
+            && let Some(x) = Self::by_name(&x)
+        {
+            return Some(x);
         }
 
         Self::list().last().cloned()
@@ -97,10 +96,10 @@ impl ToolChain {
             for dir in dirs.flatten() {
                 let path = dir.path();
                 let name = path.components().next_back();
-                if let Some(Component::Normal(x)) = name {
-                    if let Ok(x) = ToolChain::try_from(&x.to_string_lossy().into_owned()) {
-                        ret.push(x);
-                    }
+                if let Some(Component::Normal(x)) = name
+                    && let Ok(x) = ToolChain::try_from(&x.to_string_lossy().into_owned())
+                {
+                    ret.push(x);
                 }
             }
         }
@@ -125,17 +124,17 @@ impl ToolChain {
 
             let pkg_version = get_package_version(pkg)?;
 
-            if let Ok(actual) = self.get_actual_version() {
-                if pkg_version <= actual {
-                    info!("checking toolchain: {self} (up-to-date)");
-                    return Ok(());
-                }
+            if let Ok(actual) = self.get_actual_version()
+                && pkg_version <= actual
+            {
+                info!("checking toolchain: {self} (up-to-date)");
+                return Ok(());
             }
 
-            if let ToolChain::Version(x) = self {
-                if *x != pkg_version {
-                    bail!("unexpected package: package version is {pkg_version}");
-                }
+            if let ToolChain::Version(x) = self
+                && *x != pkg_version
+            {
+                bail!("unexpected package: package version is {pkg_version}");
             }
 
             File::open(pkg)?
@@ -144,22 +143,14 @@ impl ToolChain {
                 ToolChain::Latest => {
                     let latest = get_latest_version("veryl", config).await?;
                     if let Ok(actual) = self.get_actual_version() {
-                        if latest != actual {
-                            Some(latest)
-                        } else {
-                            None
-                        }
+                        if latest != actual { Some(latest) } else { None }
                     } else {
                         Some(latest)
                     }
                 }
                 ToolChain::Version(x) => {
                     if let Ok(actual) = self.get_actual_version() {
-                        if *x != actual {
-                            Some(x.clone())
-                        } else {
-                            None
-                        }
+                        if *x != actual { Some(x.clone()) } else { None }
                     } else {
                         Some(x.clone())
                     }
