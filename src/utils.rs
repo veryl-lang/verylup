@@ -1,7 +1,7 @@
 use crate::config::Config;
-use anyhow::{anyhow, bail, Context, Result};
+use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{Response, Url};
-use rustls::{crypto::ring::default_provider, ClientConfig};
+use rustls::{ClientConfig, crypto::ring::default_provider};
 use rustls_platform_verifier::BuilderVerifierExt;
 use semver::Version;
 use std::fs::File;

@@ -6,7 +6,7 @@ repository  = "https://github.com/veryl-lang/verylup"
 license     = "MIT OR Apache-2.0"
 readme      = "README.md"
 description = "Veryl version manager"
-edition     = "2021"
+edition     = "2024"
 
 [features]
 no-self-update = []

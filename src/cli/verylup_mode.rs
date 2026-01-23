@@ -1,13 +1,13 @@
 use crate::config::Config;
 use crate::exec::exec;
-use crate::toolchain::{ToolChain, TOOLS};
+use crate::toolchain::{TOOLS, ToolChain};
 use crate::utils::*;
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
 use clap_complete::aot::Shell;
 use console::Style;
 use fern::Dispatch;
-use log::{info, warn, Level, LevelFilter};
+use log::{Level, LevelFilter, info, warn};
 use semver::Version;
 use std::env;
 use std::fs;
@@ -455,7 +455,9 @@ async fn self_update() -> Result<()> {
             info!("checking verylup: {self_version} (up-to-date)");
         }
     } else if NEVER_SELF_UPDATE {
-        info!("self-update is disabled: you should probably use your system package manager to update verylup");
+        info!(
+            "self-update is disabled: you should probably use your system package manager to update verylup"
+        );
     } else {
         info!("self-update is disabled");
     }

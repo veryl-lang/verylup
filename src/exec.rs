@@ -9,9 +9,9 @@ pub fn exec(cmd: &mut Command) -> io::Result<ExitStatus> {
 
 #[cfg(windows)]
 pub fn exec(cmd: &mut Command) -> io::Result<ExitStatus> {
-    use windows_sys::core::BOOL;
     use windows_sys::Win32::Foundation::{FALSE, TRUE};
     use windows_sys::Win32::System::Console::SetConsoleCtrlHandler;
+    use windows_sys::core::BOOL;
 
     unsafe extern "system" fn ctrlc_handler(_: u32) -> BOOL {
         // Do nothing. Let the child process handle it.
