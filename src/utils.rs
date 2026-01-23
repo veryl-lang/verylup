@@ -1,26 +1,15 @@
 use crate::config::Config;
 use anyhow::{Context, Result, anyhow, bail};
 use reqwest::{Response, Url};
-use rustls::{ClientConfig, crypto::ring::default_provider};
-use rustls_platform_verifier::BuilderVerifierExt;
 use semver::Version;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::sync::Arc;
 use zip::ZipArchive;
 
 async fn get_url(url: &Url, config: &Config) -> Result<Response> {
-    let provider = Arc::new(default_provider());
-    let tls = ClientConfig::builder_with_provider(provider)
-        .with_safe_default_protocol_versions()
-        .context("applying default TLS protocol versions")?
-        .with_platform_verifier()
-        .context("building TLS configuration with platform verifier")?
-        .with_no_client_auth();
-
-    let mut builder = reqwest::ClientBuilder::new().use_preconfigured_tls(tls);
+    let mut builder = reqwest::ClientBuilder::new();
     if let Some(proxy) = &config.proxy {
         builder = builder.proxy(reqwest::Proxy::all(proxy)?);
     }
