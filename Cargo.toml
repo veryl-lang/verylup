@@ -14,7 +14,7 @@ no-self-update = []
 [dependencies]
 anyhow        = "1.0"
 clap          = {version = "4.6", features = ["derive"]}
-clap_complete = "4.5"
+clap_complete = "4.6"
 chrono        = "0.4.44"
 console       = "0.16.2"
 directories   = "6.0"
