@@ -6,6 +6,8 @@ use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::Duration;
+use tokio::time::sleep;
 use zip::ZipArchive;
 
 async fn get_url(url: &Url, config: &Config) -> Result<Response> {
@@ -15,13 +17,38 @@ async fn get_url(url: &Url, config: &Config) -> Result<Response> {
     }
 
     let client = builder.build().context("constructing HTTP client")?;
-    let response = client
-        .get(url.clone())
-        .send()
-        .await
-        .with_context(|| format!("requesting {url}"))?;
 
-    Ok(response)
+    let max_retries = 3;
+    let mut last_error = None;
+
+    for i in 0..=max_retries {
+        if i > 0 {
+            let delay = Duration::from_secs(1 << (i - 1)); // 1s, 2s, 4s
+            log::info!("retrying {url} in {}s ({i}/{max_retries})", delay.as_secs());
+            sleep(delay).await;
+        }
+
+        match client.get(url.clone()).send().await {
+            Ok(resp) => {
+                if resp.status().is_server_error() && i < max_retries {
+                    log::warn!("server error {} for {url}, retrying", resp.status());
+                    last_error = Some(anyhow!("server error: {}", resp.status()));
+                    continue;
+                }
+                return Ok(resp);
+            }
+            Err(e) => {
+                if i < max_retries {
+                    log::warn!("request failed for {url}: {e}, retrying");
+                }
+                last_error = Some(e.into());
+            }
+        }
+    }
+
+    Err(last_error
+        .unwrap()
+        .context(format!("requesting {url} (after {max_retries} retries)")))
 }
 
 pub async fn get_latest_version(project: &str, config: &Config) -> Result<Version> {
