@@ -2,7 +2,7 @@ use crate::config::Config;
 use crate::utils::*;
 use anyhow::{Context, Error, Result, anyhow, bail};
 use directories::ProjectDirs;
-use log::info;
+use log::{info, warn};
 use semver::Version;
 use std::fmt;
 use std::fs::{self, File};
@@ -200,7 +200,22 @@ impl ToolChain {
 
         unzip(&file, &dir)?;
 
+        if let Err(error) = self.verify() {
+            if let Some(hint) = unsupported_host_hint() {
+                warn!("{hint}");
+            }
+            return Err(error.context("the installed toolchain cannot be executed"));
+        }
+
         Ok(())
+    }
+
+    fn verify(&self) -> Result<()> {
+        match self.get_version_string() {
+            Ok(x) if x.starts_with("veryl ") => Ok(()),
+            Ok(x) => bail!("unexpected version output: {}", x.trim()),
+            Err(x) => Err(x).context("executing veryl"),
+        }
     }
 
     pub fn uninstall(&self) -> Result<()> {
