@@ -116,6 +116,35 @@ pub fn get_nightly_version_url() -> Result<Url> {
     Ok(url)
 }
 
+/// The interpreter embedded in the released binaries.
+fn glibc_loader() -> Option<&'static str> {
+    if TARGET.starts_with("x86_64-unknown-linux") {
+        Some("/lib64/ld-linux-x86-64.so.2")
+    } else if TARGET.starts_with("aarch64-unknown-linux") {
+        Some("/lib/ld-linux-aarch64.so.1")
+    } else {
+        None
+    }
+}
+
+pub fn unsupported_host_hint() -> Option<String> {
+    if Path::new("/etc/NIXOS").exists() {
+        return Some(
+            "nixpkgs' veryl or \"programs.nix-ld.enable\" is required to run the released binaries on NixOS"
+                .to_string(),
+        );
+    }
+
+    let loader = glibc_loader()?;
+    if Path::new(loader).exists() {
+        return None;
+    }
+
+    Some(format!(
+        "the released binaries require the glibc loader at {loader}"
+    ))
+}
+
 #[cfg(not(windows))]
 pub fn set_exec(file: &mut File) -> Result<()> {
     use std::os::unix::fs::PermissionsExt;

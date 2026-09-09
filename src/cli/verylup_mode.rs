@@ -216,16 +216,11 @@ pub async fn main() -> Result<()> {
                 Level::Debug => Style::new().cyan().bright(),
                 Level::Trace => Style::new().magenta().bright(),
             };
+            let message = format!("{message}");
             out.finish(format_args!(
                 "{} {}{}",
                 style.apply_to(format!("[{:<5}]", record.level())),
-                " ".repeat(
-                    12 - format!("{message}")
-                        .split_ascii_whitespace()
-                        .next()
-                        .unwrap()
-                        .len()
-                ),
+                message_indent(&message),
                 message
             ))
         })
@@ -417,6 +412,11 @@ pub async fn main() -> Result<()> {
     Ok(())
 }
 
+fn message_indent(message: &str) -> String {
+    let head = message.split_ascii_whitespace().next().unwrap_or("");
+    " ".repeat(12usize.saturating_sub(head.len()))
+}
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[cfg(feature = "no-self-update")]
@@ -502,4 +502,25 @@ fn check_link(self_path: &Path) -> Result<bool> {
     }
 
     Ok(true)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn message_indent_width() {
+        assert_eq!(message_indent("downloading toolchain: latest"), " ");
+        assert_eq!(
+            message_indent("set: proxy = http://example.com"),
+            " ".repeat(8)
+        );
+
+        // A first word wider than the alignment must not panic
+        assert_eq!(
+            message_indent("/lib64/ld-linux-x86-64.so.2 is not executable"),
+            ""
+        );
+        assert_eq!(message_indent(""), " ".repeat(12));
+    }
 }
