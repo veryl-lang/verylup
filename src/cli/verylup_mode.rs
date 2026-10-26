@@ -279,6 +279,10 @@ pub async fn main() -> Result<()> {
                 }
             }
 
+            // Resolve before self-update: once the running binary is replaced,
+            // current_exe() on Linux returns a "(deleted)" path.
+            let self_path = env::current_exe()?;
+
             if !config.offline {
                 self_update().await?;
             }
@@ -286,7 +290,6 @@ pub async fn main() -> Result<()> {
             // Check the user has run `verylup setup` and print a helpful
             // message if not. Don't do this automatically because it
             // has some options they might want to set.
-            let self_path = env::current_exe()?;
             if !check_link(&self_path)? {
                 warn!("veryl link not installed; please run 'verylup setup'");
             }
