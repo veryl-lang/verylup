@@ -173,7 +173,7 @@ pub fn unzip(file: &File, dir: &Path) -> Result<()> {
     let mut zip = ZipArchive::new(file)?;
     for i in 0..zip.len() {
         let mut src = zip.by_index(i)?;
-        let path = dir.join(src.name());
+        let path = dir.join(&*src.name()?);
         let path_str = path.to_string_lossy();
         let mut tgt = File::create(&path).with_context(|| format!("creating {path_str}"))?;
         let mut buf = Vec::new();
